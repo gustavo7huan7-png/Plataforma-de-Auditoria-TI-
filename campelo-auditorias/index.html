@@ -68,6 +68,9 @@
                     <button class="botao-primario" style="background: var(--primaria-clara);" onclick="gerarRelatorioGeralPdf()" id="botao-relatorio-geral">
                         <i class="fas fa-file-pdf"></i> Gerar Relatório Geral
                     </button>
+                    <button class="botao-primario" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);" onclick="baixarArquivoLogs()" id="botao-baixar-logs" title="Exportar Arquivo de Logs eventos.log">
+                        <i class="fas fa-file-alt"></i> Exportar eventos.log
+                    </button>
                 </div>
             </div>
 
@@ -165,7 +168,9 @@
 
                         <div class="grupo-formulario largura-total">
                             <label for="formulario-tecnico" class="rotulo-formulario">Técnico Responsável *</label>
-                            <input type="text" id="formulario-tecnico" class="entrada-formulario" placeholder="Digite seu nome completo" required>
+                            <select id="formulario-tecnico" class="seletor-personalizado" required aria-label="Seleção do Técnico Responsável">
+                                <option value="">Carregando Técnicos...</option>
+                            </select>
                         </div>
                     </div>
 
@@ -301,93 +306,155 @@
                 
                 <!-- Painel de Loja (Cadastro/Edição) -->
                 <div class="painel-formulario" style="margin: 0; max-width: 100%;">
-                    <div style="text-align: center; margin-bottom: 20px;">
+                    <div class="cabecalho-colapsavel colapsado" id="cabecalho-loja-trigger" onclick="alternarColapsoFormulario('cabecalho-loja-trigger', 'corpo-loja-cadastro')">
                         <h2 style="font-size: 18px; font-weight: 700; color: var(--destaque);" id="titulo-formulario-loja"><i class="fas fa-store"></i> Cadastrar Nova Loja</h2>
                         <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;" id="subtitulo-formulario-loja">Adicione uma nova unidade física do supermercado ao sistema.</p>
+                        <i class="fas fa-chevron-up seta-colapso"></i>
                     </div>
-                    <form id="formulario-cadastro-loja">
-                        <div class="grupo-formulario" style="margin-bottom: 16px;">
-                            <label for="cadastro-loja-nome" class="rotulo-formulario">Nome da Unidade *</label>
-                            <input type="text" id="cadastro-loja-nome" class="entrada-formulario" placeholder="Ex: Campelo Sul" required>
-                        </div>
-                        <div class="grupo-formulario" style="margin-bottom: 24px;">
-                            <label for="cadastro-loja-localizacao" class="rotulo-formulario">Localização/Endereço *</label>
-                            <input type="text" id="cadastro-loja-localizacao" class="entrada-formulario" placeholder="Ex: Av. Santos Dumont, 800 - Araguaína/TO" required>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-loja">
-                                <i class="fas fa-plus"></i> Cadastrar Loja
-                            </button>
-                            <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-loja">
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
+                    <div class="corpo-formulario-colapsavel fechado" id="corpo-loja-cadastro">
+                        <form id="formulario-cadastro-loja" style="margin-top: 16px;">
+                            <div class="grupo-formulario" style="margin-bottom: 16px;">
+                                <label for="cadastro-loja-nome" class="rotulo-formulario">Nome da Unidade *</label>
+                                <input type="text" id="cadastro-loja-nome" class="entrada-formulario" placeholder="Ex: Campelo Sul" required>
+                            </div>
+                            <div class="grupo-formulario" style="margin-bottom: 24px;">
+                                <label for="cadastro-loja-localizacao" class="rotulo-formulario">Localização/Endereço *</label>
+                                <input type="text" id="cadastro-loja-localizacao" class="entrada-formulario" placeholder="Ex: Av. Santos Dumont, 800 - Araguaína/TO" required>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-loja">
+                                    <i class="fas fa-plus"></i> Cadastrar Loja
+                                </button>
+                                <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-loja">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
 
                     <!-- Lista de Lojas Existentes para Edição/Exclusão -->
                     <div style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
-                        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); margin-bottom: 12px; font-weight: 700;">Unidades Cadastradas</h3>
-                        <div id="lista-lojas-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
-                            <!-- Inserido dinamicamente via JS -->
+                        <div class="cabecalho-colapsavel-lista" id="cabecalho-lista-lojas-trigger" onclick="alternarColapsoFormulario('cabecalho-lista-lojas-trigger', 'corpo-lista-lojas')">
+                            <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); font-weight: 700; margin: 0;">Unidades Cadastradas</h3>
+                            <i class="fas fa-chevron-up seta-colapso"></i>
+                        </div>
+                        <div class="corpo-formulario-colapsavel" id="corpo-lista-lojas">
+                            <div id="lista-lojas-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                                <!-- Inserido dinamicamente via JS -->
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Painel de PDV (Cadastro/Edição) -->
                 <div class="painel-formulario" style="margin: 0; max-width: 100%;">
-                    <div style="text-align: center; margin-bottom: 20px;">
+                    <div class="cabecalho-colapsavel colapsado" id="cabecalho-pdv-trigger" onclick="alternarColapsoFormulario('cabecalho-pdv-trigger', 'corpo-pdv-cadastro')">
                         <h2 style="font-size: 18px; font-weight: 700; color: var(--destaque);" id="titulo-formulario-pdv"><i class="fas fa-desktop"></i> Cadastrar Novo PDV (Caixa)</h2>
                         <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;" id="subtitulo-formulario-pdv">Adicione um computador de checkout a uma unidade existente.</p>
+                        <i class="fas fa-chevron-up seta-colapso"></i>
                     </div>
-                    <form id="formulario-cadastro-pdv">
-                        <div class="grupo-formulario" style="margin-bottom: 12px;">
-                            <label for="cadastro-pdv-selecao-loja" class="rotulo-formulario">Selecione a Loja *</label>
-                            <select id="cadastro-pdv-selecao-loja" class="seletor-personalizado" required aria-label="Seleção da Loja para Cadastro de PDV">
-                                <option value="">Carregando lojas...</option>
-                            </select>
-                        </div>
-                        <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <div class="grupo-formulario">
-                                <label for="cadastro-pdv-numero" class="rotulo-formulario">Número do Caixa *</label>
-                                <input type="number" id="cadastro-pdv-numero" class="entrada-formulario" placeholder="Ex: 5" min="1" required>
+                    <div class="corpo-formulario-colapsavel fechado" id="corpo-pdv-cadastro">
+                        <form id="formulario-cadastro-pdv" style="margin-top: 16px;">
+                            <div class="grupo-formulario" style="margin-bottom: 12px;">
+                                <label for="cadastro-pdv-selecao-loja" class="rotulo-formulario">Selecione a Loja *</label>
+                                <select id="cadastro-pdv-selecao-loja" class="seletor-personalizado" required aria-label="Seleção da Loja para Cadastro de PDV">
+                                    <option value="">Carregando lojas...</option>
+                                </select>
                             </div>
-                            <div class="grupo-formulario">
-                                <label for="cadastro-pdv-ram" class="rotulo-formulario">Memória RAM (GB) *</label>
-                                <input type="number" id="cadastro-pdv-ram" class="entrada-formulario" placeholder="Ex: 8" min="1" required>
+                            <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div class="grupo-formulario">
+                                    <label for="cadastro-pdv-numero" class="rotulo-formulario">Número do Caixa *</label>
+                                    <input type="number" id="cadastro-pdv-numero" class="entrada-formulario" placeholder="Ex: 5" min="1" required>
+                                </div>
+                                <div class="grupo-formulario">
+                                    <label for="cadastro-pdv-ram" class="rotulo-formulario">Memória RAM (GB) *</label>
+                                    <input type="number" id="cadastro-pdv-ram" class="entrada-formulario" placeholder="Ex: 8" min="1" required>
+                                </div>
                             </div>
-                        </div>
-                        <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <div class="grupo-formulario">
-                                <label for="cadastro-pdv-so" class="rotulo-formulario">Sistema Operacional *</label>
-                                <input type="text" id="cadastro-pdv-so" class="entrada-formulario" placeholder="Ex: Windows 10 IoT" required>
+                            <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                                <div class="grupo-formulario">
+                                    <label for="cadastro-pdv-so" class="rotulo-formulario">Sistema Operacional *</label>
+                                    <input type="text" id="cadastro-pdv-so" class="entrada-formulario" placeholder="Ex: Windows 10 IoT" required>
+                                </div>
+                                <div class="grupo-formulario">
+                                    <label for="cadastro-pdv-versao" class="rotulo-formulario">Versão do S.O. *</label>
+                                    <input type="text" id="cadastro-pdv-versao" class="entrada-formulario" placeholder="Ex: 21H2" required>
+                                </div>
                             </div>
-                            <div class="grupo-formulario">
-                                <label for="cadastro-pdv-versao" class="rotulo-formulario">Versão do S.O. *</label>
-                                <input type="text" id="cadastro-pdv-versao" class="entrada-formulario" placeholder="Ex: 21H2" required>
+                            <div class="grupo-formulario" style="margin-bottom: 24px;">
+                                <label for="cadastro-pdv-bios" class="rotulo-formulario">Interface de BIOS *</label>
+                                <select id="cadastro-pdv-bios" class="seletor-personalizado" required aria-label="Seleção da Interface de BIOS para Cadastro de PDV">
+                                    <option value="UEFI">UEFI</option>
+                                    <option value="Legacy">Legacy</option>
+                                </select>
                             </div>
-                        </div>
-                        <div class="grupo-formulario" style="margin-bottom: 24px;">
-                            <label for="cadastro-pdv-bios" class="rotulo-formulario">Interface de BIOS *</label>
-                            <select id="cadastro-pdv-bios" class="seletor-personalizado" required aria-label="Seleção da Interface de BIOS para Cadastro de PDV">
-                                <option value="UEFI">UEFI</option>
-                                <option value="Legacy">Legacy</option>
-                            </select>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-pdv">
-                                <i class="fas fa-plus"></i> Cadastrar PDV
-                            </button>
-                            <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-pdv">
-                                Cancelar
-                            </button>
-                        </div>
-                    </form>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-pdv">
+                                    <i class="fas fa-plus"></i> Cadastrar PDV
+                                </button>
+                                <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-pdv">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
 
                     <!-- Lista de PDVs Existentes para Edição/Exclusão -->
                     <div style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
-                        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); margin-bottom: 12px; font-weight: 700;">Caixas Cadastrados</h3>
-                        <div id="lista-pdvs-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
-                            <p style="color: var(--texto-secundario); font-size: 13px;">Selecione uma loja acima para listar os caixas.</p>
+                        <div class="cabecalho-colapsavel-lista" id="cabecalho-lista-pdvs-trigger" onclick="alternarColapsoFormulario('cabecalho-lista-pdvs-trigger', 'corpo-lista-pdvs')">
+                            <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); font-weight: 700; margin: 0;">Caixas Cadastrados</h3>
+                            <i class="fas fa-chevron-up seta-colapso"></i>
+                        </div>
+                        <div class="corpo-formulario-colapsavel" id="corpo-lista-pdvs">
+                            <div id="lista-pdvs-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                                <p style="color: var(--texto-secundario); font-size: 13px;">Selecione uma loja acima para listar os caixas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Técnico (Cadastro/Edição) -->
+                <div class="painel-formulario" style="margin: 0; max-width: 100%;">
+                    <div class="cabecalho-colapsavel colapsado" id="cabecalho-tecnico-trigger" onclick="alternarColapsoFormulario('cabecalho-tecnico-trigger', 'corpo-tecnico-cadastro')">
+                        <h2 style="font-size: 18px; font-weight: 700; color: var(--destaque);" id="titulo-formulario-tecnico"><i class="fas fa-user-cog"></i> Cadastrar Novo Técnico</h2>
+                        <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;" id="subtitulo-formulario-tecnico">Adicione um novo técnico responsável ao sistema de TI.</p>
+                        <i class="fas fa-chevron-up seta-colapso"></i>
+                    </div>
+                    <div class="corpo-formulario-colapsavel fechado" id="corpo-tecnico-cadastro">
+                        <form id="formulario-cadastro-tecnico" style="margin-top: 16px;">
+                            <div class="grupo-formulario" style="margin-bottom: 12px;">
+                                <label for="cadastro-tecnico-nome" class="rotulo-formulario">Nome Completo *</label>
+                                <input type="text" id="cadastro-tecnico-nome" class="entrada-formulario" placeholder="Ex: Mateus Oliveira" required>
+                            </div>
+                            <div class="grupo-formulario" style="margin-bottom: 12px;">
+                                <label for="cadastro-tecnico-email" class="rotulo-formulario">E-mail Corporativo *</label>
+                                <input type="email" id="cadastro-tecnico-email" class="entrada-formulario" placeholder="Ex: mateus.oliveira@campelo.com.br" required>
+                            </div>
+                            <div class="grupo-formulario" style="margin-bottom: 24px;">
+                                <label for="cadastro-tecnico-telefone" class="rotulo-formulario">Telefone / WhatsApp</label>
+                                <input type="text" id="cadastro-tecnico-telefone" class="entrada-formulario" placeholder="Ex: (63) 99204-7788">
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-tecnico">
+                                    <i class="fas fa-plus"></i> Cadastrar Técnico
+                                </button>
+                                <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-tecnico">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Lista de Técnicos Existentes para Edição/Exclusão -->
+                    <div style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+                        <div class="cabecalho-colapsavel-lista" id="cabecalho-lista-tecnicos-trigger" onclick="alternarColapsoFormulario('cabecalho-lista-tecnicos-trigger', 'corpo-lista-tecnicos')">
+                            <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); font-weight: 700; margin: 0;">Técnicos Cadastrados</h3>
+                            <i class="fas fa-chevron-up seta-colapso"></i>
+                        </div>
+                        <div class="corpo-formulario-colapsavel" id="corpo-lista-tecnicos">
+                            <div id="lista-tecnicos-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                                <!-- Inserido dinamicamente via JS -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -457,7 +524,8 @@
          TEMPLATE DE PDF INSTITUCIONAL (Invisível no Fluxo da Página)
          Cabeçalho -> Metadados -> Hardware -> Imagens 190x190px
          ======================================================== -->
-    <div id="template-pdf">
+    <div class="conteiner-pdf-oculto">
+        <div id="template-pdf">
         <!-- Cabeçalho Institucional -->
         <div class="pdf-cabecalho">
             <img src="./logo.png" class="pdf-logo" alt="Logo Campelo">
@@ -556,6 +624,67 @@
         <div class="pdf-nota-rodape">
             Este relatório foi gerado eletronicamente em conformidade com as regras de segurança e inventário da TI Campelo.<br>
             © 2026 Campelo Supermercados. Todos os direitos reservados.
+        </div>
+        </div>
+
+        <div id="template-pdf-geral">
+            <div class="pdf-cabecalho">
+                <img src="./logo.png" class="pdf-logo" alt="Logo Campelo">
+                <div class="pdf-bloco-titulo">
+                    <h1>RELATÓRIO GERAL DE AUDITORIA DE TI</h1>
+                    <p>Visão consolidada por unidade e auditoria</p>
+                </div>
+            </div>
+
+            <div class="pdf-titulo-secao">Resumo da Exportação</div>
+            <div class="pdf-grade-meta">
+                <div class="pdf-item-meta">
+                    <span class="pdf-rotulo-meta">Filial / Filtro</span>
+                    <span class="pdf-valor-meta" id="pdf-geral-topo-filial">-</span>
+                </div>
+                <div class="pdf-item-meta">
+                    <span class="pdf-rotulo-meta">Data de Emissão</span>
+                    <span class="pdf-valor-meta" id="pdf-geral-topo-data">-</span>
+                </div>
+                <div class="pdf-item-meta">
+                    <span class="pdf-rotulo-meta">Total de PDVs</span>
+                    <span class="pdf-valor-meta" id="pdf-geral-total-pdvs">0</span>
+                </div>
+                <div class="pdf-item-meta">
+                    <span class="pdf-rotulo-meta">Total de Auditorias</span>
+                    <span class="pdf-valor-meta" id="pdf-geral-total-auditorias">0</span>
+                </div>
+                <div class="pdf-item-meta">
+                    <span class="pdf-rotulo-meta">Auditorias com Alerta</span>
+                    <span class="pdf-valor-meta" id="pdf-geral-alertas">0</span>
+                </div>
+            </div>
+
+            <div class="pdf-titulo-secao">Detalhamento de Auditorias</div>
+            <table class="pdf-tabela">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Unidade</th>
+                        <th>Caixa</th>
+                        <th>Data</th>
+                        <th>Técnico</th>
+                        <th>Impressora</th>
+                        <th>Leitor</th>
+                        <th>Teclado</th>
+                        <th>Gabinete</th>
+                    </tr>
+                </thead>
+                <tbody id="pdf-geral-tabela-corpo">
+                    <tr>
+                        <td colspan="9" style="text-align:center; padding: 14px;">Sem auditorias disponíveis para o filtro selecionado.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="pdf-nota-rodape">
+                Relatório geral gerado automaticamente para suporte operacional da TI Campelo.
+            </div>
         </div>
     </div>
 

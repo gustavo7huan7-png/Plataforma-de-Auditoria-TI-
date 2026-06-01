@@ -918,10 +918,20 @@ body {
 }
 
 /* Modelagem de Estilo do PDF (Oculto na Interface, impresso no Cliente) */
-#template-pdf {
-    position: fixed;
-    top: -9999px;
+.conteiner-pdf-oculto {
+    position: absolute;
     left: -9999px;
+    top: -9999px;
+    width: 800px;
+    height: auto;
+    overflow: visible;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    z-index: -9999;
+}
+
+#template-pdf {
     width: 800px;
     background: #ffffff;
     color: #333333;
@@ -1067,9 +1077,6 @@ body {
    ========================================== */
 
 #template-pdf-geral {
-    position: fixed;
-    top: -9999px;
-    left: -9999px;
     width: 800px;
     background: #ffffff;
     color: #333333;
@@ -1380,3 +1387,77 @@ body {
         justify-content: center;
     }
 }
+
+/* ==========================================
+   FORMULÁRIOS COLAPSÁVEIS (ABA CADASTROS)
+   ========================================== */
+
+.cabecalho-colapsavel {
+    cursor: pointer;
+    user-select: none;
+    padding: 10px;
+    border-radius: var(--raio-medio);
+    transition: var(--transicao);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    border: 1px solid transparent;
+}
+
+.cabecalho-colapsavel:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(247, 209, 23, 0.1);
+}
+
+.seta-colapso {
+    font-size: 14px;
+    color: var(--texto-secundario);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 8px;
+}
+
+.cabecalho-colapsavel.colapsado .seta-colapso {
+    transform: rotate(180deg);
+}
+
+.cabecalho-colapsavel-lista {
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 10px;
+    border-radius: var(--raio-pequeno);
+    transition: var(--transicao);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    border: 1px solid transparent;
+    margin-bottom: 12px;
+}
+
+.cabecalho-colapsavel-lista:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(247, 209, 23, 0.1);
+}
+
+.cabecalho-colapsavel-lista .seta-colapso {
+    margin-top: 0;
+}
+
+.cabecalho-colapsavel-lista.colapsado .seta-colapso {
+    transform: rotate(180deg);
+}
+
+.corpo-formulario-colapsavel {
+    max-height: 1000px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+}
+
+.corpo-formulario-colapsavel.fechado {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+

@@ -11,6 +11,15 @@ CREATE TABLE lojas (
     localizacao VARCHAR(255) NOT NULL
 );
 
+-- Tabela Técnicos
+-- Armazena os dados dos técnicos responsáveis por realizar as vistorias nos caixas.
+CREATE TABLE tecnicos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    telefone VARCHAR(20)
+);
+
 -- Tabela PDVs (Pontos de Venda / Caixas)
 -- Cada PDV pertence a uma loja e armazena suas especificações de hardware.
 CREATE TABLE pdvs (
@@ -31,7 +40,7 @@ CREATE TABLE auditorias (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     pdv_id INTEGER NOT NULL,
     data DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    tecnico VARCHAR(100) NOT NULL,
+    tecnico VARCHAR(100) NOT NULL,            -- Nome do técnico vistoriador (relacionado com a tabela tecnicos)
     status_impressora VARCHAR(10) NOT NULL,   -- Restrição: 'OK' ou 'Atenção'
     status_leitor VARCHAR(10) NOT NULL,       -- Restrição: 'OK' ou 'Atenção'
     status_teclado_mouse VARCHAR(10) NOT NULL, -- Restrição: 'OK' ou 'Atenção'

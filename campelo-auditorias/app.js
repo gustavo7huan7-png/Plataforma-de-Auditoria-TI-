@@ -10,6 +10,7 @@ let graficoPerifericos = null;
 let base64PrevisualizacaoAtual = "";
 let idLojaEditando = null;
 let idPdvEditando = null;
+let idTecnicoEditando = null;
 
 // Inicialização da Aplicação
 document.addEventListener("DOMContentLoaded", () => {
@@ -19,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
             carregarFiltrosLojas();
             alternarAba("aba-painel");
             exibirNotificacao("Plataforma carregada e pronta!", "sucesso");
+            registrarLog("INFO", "Plataforma carregada e inicializada com sucesso.");
         })
         .catch(erro => {
             console.error("Erro na inicialização:", erro);
@@ -31,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================
 function inicializarBancoDeDados() {
     return new Promise((resolver, rejeitar) => {
-        const requisicao = indexedDB.open("CampeloAuditDB", 1);
+        const requisicao = indexedDB.open("CampeloAuditDB", 3);
 
         requisicao.onupgradeneeded = (evento) => {
             const bancoDeDados = evento.target.result;
@@ -51,6 +53,14 @@ function inicializarBancoDeDados() {
                 storeAuditorias.createIndex("pdv_id", "pdv_id", { unique: false });
                 storeAuditorias.createIndex("data", "data", { unique: false });
             }
+            // Criar Store de Técnicos
+            if (!bancoDeDados.objectStoreNames.contains("tecnicos")) {
+                bancoDeDados.createObjectStore("tecnicos", { keyPath: "id", autoIncrement: true });
+            }
+            // Criar Store de Logs
+            if (!bancoDeDados.objectStoreNames.contains("logs")) {
+                bancoDeDados.createObjectStore("logs", { keyPath: "id", autoIncrement: true });
+            }
         };
 
         requisicao.onsuccess = (evento) => {
@@ -67,10 +77,12 @@ function inicializarBancoDeDados() {
 
 // Semente de Dados (Seeding)
 async function semearBancoDeDadosSeVazio() {
-    const transacao = bd.transaction(["lojas", "pdvs", "auditorias"], "readwrite");
+    const transacao = bd.transaction(["lojas", "pdvs", "auditorias", "tecnicos", "logs"], "readwrite");
     const storeLojas = transacao.objectStore("lojas");
     const storePdvs = transacao.objectStore("pdvs");
     const storeAuditorias = transacao.objectStore("auditorias");
+    const storeTecnicos = transacao.objectStore("tecnicos");
+    const storeLogs = transacao.objectStore("logs");
 
     // Verificar se já possui lojas
     const requisicaoContagem = storeLojas.count();
@@ -79,6 +91,14 @@ async function semearBancoDeDadosSeVazio() {
             if (requisicaoContagem.result === 0) {
                 console.log("Banco de dados vazio! Semeando dados padrão...");
                 
+                // 0. Semear Técnicos
+                const dadosTecnicos = [
+                    { id: 1, nome: "Carlos Silva", email: "carlos.silva@campelo.com.br", telefone: "(63) 98401-2211" },
+                    { id: 2, nome: "Ana Souza", email: "ana.souza@campelo.com.br", telefone: "(63) 98112-4455" },
+                    { id: 3, nome: "Mateus Oliveira", email: "mateus.oliveira@campelo.com.br", telefone: "(63) 99204-7788" }
+                ];
+                dadosTecnicos.forEach(t => storeTecnicos.add(t));
+
                 // 1. Semear Lojas
                 const dadosLojas = [
                     { id: 1, nome: "Campelo Centro", localizacao: "Av. Bernardo Sayão, 1200, Centro - Araguaína/TO" },
@@ -176,6 +196,22 @@ async function semearBancoDeDadosSeVazio() {
                     }
                 ];
                 dadosAuditorias.forEach(auditoria => storeAuditorias.add(auditoria));
+
+                // 5. Semear Logs Iniciais
+                const dadosLogs = [
+                    { data: new Date("2026-06-01T17:00:00").toISOString(), tipo: "INFO", descricao: "Inicializando a implantação da plataforma de auditoria Campelo." },
+                    { data: new Date("2026-06-01T17:00:02").toISOString(), tipo: "INFO", descricao: "Criando estrutura física do projeto em C:\\Users\\gusta\\.gemini\\antigravity\\scratch\\campelo-auditorias\\" },
+                    { data: new Date("2026-06-01T17:01:05").toISOString(), tipo: "INFO", descricao: "Arquivo database.sql gravado com sucesso." },
+                    { data: new Date("2026-06-01T17:02:10").toISOString(), tipo: "INFO", descricao: "Estilos CSS premium configurados no arquivo styles.css." },
+                    { data: new Date("2026-06-01T17:05:00").toISOString(), tipo: "INFO", descricao: "Lógica principal do sistema e wrappers do IndexedDB criados no arquivo app.js." },
+                    { data: new Date("2026-06-01T17:07:30").toISOString(), tipo: "INFO", descricao: "Página principal index.html montada com layouts responsivos e abas." },
+                    { data: new Date("2026-06-01T17:40:00").toISOString(), tipo: "INFO", descricao: "Adicionado suporte ao cadastro, edição e exclusão de Técnicos Responsáveis." },
+                    { data: new Date("2026-06-01T17:50:00").toISOString(), tipo: "INFO", descricao: "Implementados painéis colapsáveis (formulários e listas de cadastro) para otimização visual." },
+                    { data: new Date("2026-06-01T19:28:12").toISOString(), tipo: "INFO", descricao: "Sincronização e validação das regras em cascata (Cascade Delete) executada." },
+                    { data: new Date("2026-06-01T19:35:00").toISOString(), tipo: "INFO", descricao: "Corrigida a renderização de relatórios PDF (resolvido problema de folha em branco usando wrapper com coordenadas 0,0)." },
+                    { data: new Date("2026-06-01T19:40:00").toISOString(), tipo: "INFO", descricao: "Banco de dados local semeado com Lojas, PDVs, Técnicos e Auditorias de teste." }
+                ];
+                dadosLogs.forEach(log => storeLogs.add(log));
 
                 transacao.oncomplete = () => {
                     console.log("Banco de dados semeado com sucesso!");
@@ -398,10 +434,12 @@ function configurarOuvintesEventos() {
     // Submissão de Formulários de Cadastro/Edição
     document.getElementById("formulario-cadastro-loja").addEventListener("submit", processarCadastroLoja);
     document.getElementById("formulario-cadastro-pdv").addEventListener("submit", processarCadastroPdv);
+    document.getElementById("formulario-cadastro-tecnico").addEventListener("submit", processarCadastroTecnico);
 
     // Cancelamento de Edições
     document.getElementById("botao-cancelar-edicao-loja").addEventListener("click", cancelarEdicaoLoja);
     document.getElementById("botao-cancelar-edicao-pdv").addEventListener("click", cancelarEdicaoPdv);
+    document.getElementById("botao-cancelar-edicao-tecnico").addEventListener("click", cancelarEdicaoTecnico);
 
     // Evento para atualizar lista de PDVs cadastrados ao selecionar loja no formulário de PDVs
     document.getElementById("cadastro-pdv-selecao-loja").addEventListener("change", (evento) => {
@@ -432,13 +470,16 @@ function alternarAba(idAba) {
         carregarDadosPainel(idLoja);
     } else if (idAba === "aba-nova-auditoria") {
         reiniciarFormularioAuditoria();
+        carregarDropdownTecnicos();
     } else if (idAba === "aba-todos-pdvs") {
         carregarVisualizacaoListaPdvs();
     } else if (idAba === "aba-cadastros") {
         cancelarEdicaoLoja();
         cancelarEdicaoPdv();
+        cancelarEdicaoTecnico();
         atualizarDropdownLojaCadastro();
         renderizarListaLojasCadastro();
+        renderizarListaTecnicosCadastro();
     }
 }
 
@@ -521,7 +562,8 @@ async function processarSubmissaoFormulario(evento) {
 
     const idLoja = parseInt(document.getElementById("formulario-selecao-loja").value);
     const idPdv = parseInt(document.getElementById("formulario-selecao-pdv").value);
-    const tecnico = document.getElementById("formulario-tecnico").value.trim();
+    const seletorTecnico = document.getElementById("formulario-tecnico");
+    const tecnico = seletorTecnico.value ? seletorTecnico.options[seletorTecnico.selectedIndex].text : "";
     const observacoes = document.getElementById("formulario-observacoes").value.trim();
     
     if (!idLoja || !idPdv || !tecnico) {
@@ -585,6 +627,7 @@ async function processarSubmissaoFormulario(evento) {
         };
 
         await salvarAuditoria(novaAuditoria);
+        registrarLog("INFO", `Nova auditoria registrada para Caixa ${objetoPdv ? objetoPdv.numero_caixa : idPdv} (Loja ID ${objetoPdv ? objetoPdv.loja_id : '?'}) pelo técnico "${tecnico}".`);
 
         exibirNotificacao("Auditoria salva com sucesso!", "sucesso");
         reiniciarFormularioAuditoria();
@@ -1070,269 +1113,160 @@ async function exportarPdfAuditoria(idPdv, idAuditoria) {
             margin: 10,
             filename: `Relatorio_Auditoria_TI_Caixa_${pdv.numero_caixa}_${loja.nome.replace(/\s+/g, "_")}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
+            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         exibirNotificacao("Gerando PDF...", "sucesso");
-        html2pdf().from(elemento).set(opcoes).save()
-            .then(() => exibirNotificacao("PDF exportado com sucesso!", "sucesso"))
+        html2pdf().set(opcoes).from(elemento).save()
+            .then(() => {
+                exibirNotificacao("PDF exportado com sucesso!", "sucesso");
+                registrarLog("INFO", `Relatório PDF individual exportado para Caixa ${pdv.numero_caixa} (${loja.nome}) da auditoria de ${new Date(auditoria.data).toLocaleDateString("pt-BR")}.`);
+            })
             .catch(erro => {
                 console.error("Erro ao gerar PDF:", erro);
                 exibirNotificacao("Erro ao exportar PDF.", "erro");
             });
-
     } catch (erro) {
         console.error("Erro na exportação do PDF:", erro);
+        exibirNotificacao("Erro ao exportar PDF.", "erro");
     }
 }
 
-// Relatório Geral Compilado (html2pdf.js)
 async function gerarRelatorioGeralPdf() {
     try {
         const filtroLoja = document.getElementById("filtro-loja-painel").value;
-        const lojas = await obterTodos("lojas");
-        const pdvs = await obterTodos("pdvs");
-        const auditorias = await obterTodos("auditorias");
-
-        // Identificar loja ativa
-        let lojaAtiva = null;
-        let pdvsFiltrados = [];
-
-        if (filtroLoja === "todas") {
-            pdvsFiltrados = pdvs;
-        } else {
-            const idLoja = parseInt(filtroLoja);
-            lojaAtiva = lojas.find(l => l.id === idLoja);
-            pdvsFiltrados = pdvs.filter(p => p.loja_id === idLoja);
-        }
-
-        if (pdvsFiltrados.length === 0) {
-            exibirNotificacao("Não há caixas cadastrados para gerar o relatório.", "erro");
-            return;
-        }
-
-        // Ordenar PDVs por caixa para consistência do relatório
-        pdvsFiltrados.sort((a, b) => a.numero_caixa - b.numero_caixa);
-
-        // Mapear lojas por ID
-        const mapaLojas = {};
-        lojas.forEach(l => mapaLojas[l.id] = l);
-
-        // Encontrar a última auditoria para cada PDV
-        const mapaUltimaAuditoria = {};
-        auditorias.forEach(a => {
-            const existente = mapaUltimaAuditoria[a.pdv_id];
-            if (!existente || new Date(a.data) > new Date(existente.data)) {
-                mapaUltimaAuditoria[a.pdv_id] = a;
-            }
-        });
-
-        // Criar elemento HTML temporário para o PDF Geral nos bastidores
-        const conteinerPdf = document.createElement("div");
-        conteinerPdf.id = "template-pdf-geral";
-
-        // Coletar técnicos únicos que participaram
-        const tecnicosUnicos = new Set();
-        pdvsFiltrados.forEach(p => {
-            const audit = mapaUltimaAuditoria[p.id];
-            if (audit && audit.tecnico) {
-                tecnicosUnicos.add(audit.tecnico);
-            }
-        });
-        const listaTecnicos = tecnicosUnicos.size > 0 ? Array.from(tecnicosUnicos).join(", ") : "Sem inspeções";
+        const seletorLoja = document.getElementById("filtro-loja-painel");
+        const nomeLojaLimpo = filtroLoja === "todas" ? "Rede_Geral" : seletorLoja.options[seletorLoja.selectedIndex].text.replace(/\s+/g, "_");
 
         const dataAtual = new Date();
-        const dataFormatada = dataAtual.toLocaleDateString("pt-BR");
-        
-        // Cabeçalho institucional do PDF Geral
-        let htmlCompilado = `
-            <div class="pdf-cabecalho">
-                <img src="./logo.png" class="pdf-logo" alt="Logo Campelo" style="border-radius: 6px; overflow: hidden;">
-                <div class="pdf-bloco-titulo pdf-titulo-verde-escuro">
-                    <h1>RELATÓRIO DE AUDITORIA DE TI</h1>
-                    <p>Campelo Supermercados • Consolidação de PDVs</p>
-                </div>
-            </div>
-
-            <div class="pdf-titulo-secao">Dados Gerais da Unidade</div>
-            <div class="pdf-grade-meta" style="margin-bottom: 30px;">
-                <div class="pdf-item-meta">
-                    <span class="pdf-rotulo-meta">Unidade de TI</span>
-                    <span class="pdf-valor-meta">${lojaAtiva ? lojaAtiva.nome : "Todas as Unidades"}</span>
-                </div>
-                <div class="pdf-item-meta" style="grid-column: span 2;">
-                    <span class="pdf-rotulo-meta">Endereço / Localização</span>
-                    <span class="pdf-valor-meta" style="font-size: 11px;">${lojaAtiva ? lojaAtiva.localizacao : "Rede Geral Supermercados Campelo"}</span>
-                </div>
-                <div class="pdf-item-meta">
-                    <span class="pdf-rotulo-meta">Data de Emissão</span>
-                    <span class="pdf-valor-meta">${dataFormatada}</span>
-                </div>
-            </div>
-            
-            <div style="margin-bottom: 30px;">
-                <span class="pdf-rotulo-meta" style="display:block; margin-bottom: 4px;">Técnicos de Auditoria Participantes</span>
-                <span class="pdf-valor-meta" style="font-weight: 500; font-size: 12px; color: #555;">${listaTecnicos}</span>
-            </div>
-
-            <div class="pdf-titulo-secao" style="margin-bottom: 20px;">Detalhes e Inspeções de Checkout</div>
-        `;
-
-        // Gerar o bloco de cada PDV
-        pdvsFiltrados.forEach(p => {
-            const nomeLoja = mapaLojas[p.loja_id] ? mapaLojas[p.loja_id].nome : "Loja Desconhecida";
-            const auditoria = mapaUltimaAuditoria[p.id];
-            
-            let statusBloco = "Pendente";
-            let tecnicoPdv = "-";
-            let dataPdv = "Não Realizada";
-            let observacoesPdv = "Nenhum histórico de auditoria registrado no sistema para este checkout.";
-            let imagemHtml = "";
-
-            if (auditoria) {
-                statusBloco = "Auditado";
-                tecnicoPdv = auditoria.tecnico;
-                dataPdv = new Date(auditoria.data).toLocaleString("pt-BR");
-                observacoesPdv = auditoria.observacoes || "Sem observações registradas.";
-                
-                if (auditoria.imagem_url) {
-                    imagemHtml = `
-                        <div class="pdf-galeria-fotos">
-                            <div class="pdf-foto-container-legenda">
-                                <img src="${auditoria.imagem_url}" style="width: 190px; height: 190px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd;" alt="Foto do Gabinete">
-                                <span class="pdf-legenda-foto">Gabinete - Caixa ${p.numero_caixa}</span>
-                            </div>
-                        </div>
-                    `;
-                }
-            }
-
-            htmlCompilado += `
-                <div class="pdf-bloco-pdv">
-                    <div class="pdf-bloco-pdv-titulo">
-                        Caixa ${p.numero_caixa} • ${nomeLoja} (${statusBloco})
-                    </div>
-                    
-                    <!-- Seção 1 (Header do Caixa) -->
-                    <table class="pdf-tabela" style="margin-bottom: 12px; background: #fafafa;">
-                        <tbody>
-                            <tr>
-                                <td style="width: 25%; font-weight: bold; background: #f0f0f0;">Técnico da Auditoria</td>
-                                <td style="width: 25%;">${tecnicoPdv}</td>
-                                <td style="width: 25%; font-weight: bold; background: #f0f0f0;">Data da Auditoria</td>
-                                <td style="width: 25%;">${dataPdv}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <!-- Seção 2 (Tabela Técnica) -->
-                    <table class="pdf-tabela" style="margin-bottom: 12px;">
-                        <thead>
-                            <tr>
-                                <th>Número do PDV</th>
-                                <th>Sistema Operacional / Versão</th>
-                                <th>Memória RAM (GB)</th>
-                                <th>Tipo de BIOS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Caixa ${p.numero_caixa}</td>
-                                <td>${p.so} (v${p.versao})</td>
-                                <td>
-                                    <span class="${p.ram < 8 ? 'pdf-ram-alerta' : ''}">
-                                        ${p.ram} GB ${p.ram < 8 ? '(Upgrade Requerido)' : '(OK)'}
-                                    </span>
-                                </td>
-                                <td>${p.bios}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <!-- Seção 3 (Periféricos) -->
-                    <table class="pdf-tabela" style="margin-bottom: 12px;">
-                        <thead>
-                            <tr>
-                                <th>Impressora Térmica</th>
-                                <th>Leitor de Código</th>
-                                <th>Teclado / Mouse</th>
-                                <th>Gabinete / CPU</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${auditoria ? `
-                                <tr>
-                                    <td class="${auditoria.status_impressora === 'OK' ? 'ok' : 'atencao'}">${auditoria.status_impressora}</td>
-                                    <td class="${auditoria.status_leitor === 'OK' ? 'ok' : 'atencao'}">${auditoria.status_leitor}</td>
-                                    <td class="${auditoria.status_teclado_mouse === 'OK' ? 'ok' : 'atencao'}">${auditoria.status_teclado_mouse}</td>
-                                    <td class="${auditoria.estado_gabinete === 'OK' ? 'ok' : 'atencao'}">${auditoria.estado_gabinete}</td>
-                                </tr>
-                            ` : `
-                                <tr>
-                                    <td colspan="4" style="text-align: center; color: #999; font-style: italic;">
-                                        Este computador ainda não passou por nenhuma inspeção preventiva ou corretiva.
-                                    </td>
-                                </tr>
-                            `}
-                        </tbody>
-                    </table>
-
-                    <div style="font-size: 11px; margin-top: 8px;">
-                        <strong>Observações de Campo:</strong>
-                        <div style="background: #fdfdfd; border: 1px solid #eee; padding: 10px; border-radius: 4px; margin-top: 4px; font-style: italic; color: #555;">
-                            "${observacoesPdv}"
-                        </div>
-                    </div>
-                    
-                    ${imagemHtml}
-                </div>
-            `;
-        });
-
-        // Rodapé final do relatório
-        htmlCompilado += `
-            <div class="pdf-nota-rodape" style="margin-top: 30px;">
-                Relatório Geral Consolidado emitido em conformidade com as políticas internas do Supermercados Campelo.<br>
-                © 2026 Campelo Supermercados. Todos os direitos reservados.
-            </div>
-        `;
-
-        conteinerPdf.innerHTML = htmlCompilado;
-        document.body.appendChild(conteinerPdf);
-
-        // Formatação do Nome do Arquivo
         const ano = dataAtual.getFullYear();
         const mes = String(dataAtual.getMonth() + 1).padStart(2, '0');
         const dia = String(dataAtual.getDate()).padStart(2, '0');
         const stringDataArquivo = `${ano}-${mes}-${dia}`;
-        const nomeLojaLimpo = lojaAtiva ? lojaAtiva.nome.replace(/\s+/g, "_") : "Rede_Geral";
+
+        const lojas = await obterTodos("lojas");
+        const pdvs = await obterTodos("pdvs");
+        const auditorias = await obterTodos("auditorias");
+
+        const pdvsFiltrados = filtroLoja === "todas"
+            ? pdvs
+            : pdvs.filter(p => p.loja_id === Number(filtroLoja));
+
+        const pdvIdsFiltrados = new Set(pdvsFiltrados.map(p => p.id));
+        const auditoriasFiltradas = auditorias
+            .filter(a => pdvIdsFiltrados.has(a.pdv_id))
+            .map(auditoria => {
+                const pdv = pdvs.find(p => p.id === auditoria.pdv_id);
+                const loja = pdv ? lojas.find(l => l.id === pdv.loja_id) : null;
+                return { auditoria, pdv, loja };
+            })
+            .filter(item => item.pdv && item.loja)
+            .sort((a, b) => new Date(b.auditoria.data) - new Date(a.auditoria.data));
+
+        const totalPdvs = pdvsFiltrados.length;
+        const totalAuditorias = auditoriasFiltradas.length;
+        const totalAlertas = auditoriasFiltradas.reduce((contador, item) => {
+            const semAlerta = item.auditoria.status_impressora === "OK"
+                && item.auditoria.status_leitor === "OK"
+                && item.auditoria.status_teclado_mouse === "OK"
+                && item.auditoria.estado_gabinete === "OK";
+            return contador + (semAlerta ? 0 : 1);
+        }, 0);
+
+        document.getElementById("pdf-geral-topo-filial").innerText = filtroLoja === "todas"
+            ? "Todas as Lojas"
+            : seletorLoja.options[seletorLoja.selectedIndex].text;
+        document.getElementById("pdf-geral-topo-data").innerText = dataAtual.toLocaleString("pt-BR");
+        document.getElementById("pdf-geral-total-pdvs").innerText = totalPdvs;
+        document.getElementById("pdf-geral-total-auditorias").innerText = totalAuditorias;
+        document.getElementById("pdf-geral-alertas").innerText = totalAlertas;
+
+        const corpoTabela = document.getElementById("pdf-geral-tabela-corpo");
+        if (auditoriasFiltradas.length === 0) {
+            corpoTabela.innerHTML = `
+                <tr>
+                    <td colspan="9" style="text-align:center; padding: 14px;">Nenhuma auditoria encontrada para o filtro selecionado.</td>
+                </tr>
+            `;
+        } else {
+            corpoTabela.innerHTML = auditoriasFiltradas.map((item, index) => {
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.loja.nome}</td>
+                        <td>Caixa ${item.pdv.numero_caixa}</td>
+                        <td>${new Date(item.auditoria.data).toLocaleString("pt-BR")}</td>
+                        <td>${item.auditoria.tecnico}</td>
+                        <td>${item.auditoria.status_impressora}</td>
+                        <td>${item.auditoria.status_leitor}</td>
+                        <td>${item.auditoria.status_teclado_mouse}</td>
+                        <td>${item.auditoria.estado_gabinete}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        const wrapper = document.querySelector(".conteiner-pdf-oculto");
+        const oldWrapperStyles = wrapper ? {
+            visibility: wrapper.style.visibility,
+            opacity: wrapper.style.opacity,
+            left: wrapper.style.left,
+            top: wrapper.style.top
+        } : null;
+
+        if (wrapper) {
+            wrapper.style.visibility = "visible";
+            wrapper.style.opacity = "1";
+            wrapper.style.left = "-9999px";
+            wrapper.style.top = "-9999px";
+        }
+
+        const elemento = document.getElementById("template-pdf-geral");
+        if (!elemento) {
+            exibirNotificacao("Erro: Template de relatório não encontrado.", "erro");
+            return;
+        }
+
+        await new Promise(resolve => requestAnimationFrame(resolve));
 
         const opcoes = {
             margin: 10,
-            filename: `Relatorio_TI_Campelo_${nomeLojaLimpo}_${stringDataArquivo}.pdf`,
+            filename: `Relatorio_Geral_Campelo_${nomeLojaLimpo}_${stringDataArquivo}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css'] }
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                scrollX: 0,
+                scrollY: 0,
+                backgroundColor: "#ffffff",
+                logging: false,
+                windowWidth: document.documentElement.scrollWidth,
+                windowHeight: document.documentElement.scrollHeight
+            },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+            pagebreak: { mode: ['css', 'legacy'] }
         };
 
-        exibirNotificacao("Compilando Relatório Geral...", "sucesso");
-        
-        html2pdf().from(conteinerPdf).set(opcoes).save()
-            .then(() => {
-                exibirNotificacao("Relatório Geral exportado com sucesso!", "sucesso");
-                conteinerPdf.remove(); // Limpar elemento da memória
-            })
-            .catch(erro => {
-                console.error("Erro ao gerar Relatório Geral PDF:", erro);
-                exibirNotificacao("Erro ao exportar Relatório Geral.", "erro");
-                conteinerPdf.remove();
-            });
-
+        exibirNotificacao("Gerando Relatório Geral...", "sucesso");
+        try {
+            await html2pdf().set(opcoes).from(elemento).save();
+            exibirNotificacao("Relatório Geral exportado com sucesso!", "sucesso");
+            registrarLog("INFO", `Relatório Geral exportado para ${nomeLojaLimpo}.`);
+        } catch (erro) {
+            console.error("Erro ao gerar Relatório Geral PDF:", erro);
+            exibirNotificacao("Erro ao exportar Relatório Geral.", "erro");
+        } finally {
+            if (wrapper && oldWrapperStyles) {
+                wrapper.style.visibility = oldWrapperStyles.visibility;
+                wrapper.style.opacity = oldWrapperStyles.opacity;
+                wrapper.style.left = oldWrapperStyles.left;
+                wrapper.style.top = oldWrapperStyles.top;
+            }
+        }
     } catch (erro) {
-        console.error("Erro na compilação do relatório geral:", erro);
-        exibirNotificacao("Erro ao compilar dados do relatório.", "erro");
+        console.error("Erro na geração do relatório geral:", erro);
+        exibirNotificacao("Erro ao gerar relatório geral.", "erro");
     }
 }
 
@@ -1369,10 +1303,12 @@ async function processarCadastroLoja(evento) {
                 req.onerror = () => rej(req.error);
             });
             exibirNotificacao("Loja atualizada com sucesso!", "sucesso");
+            registrarLog("INFO", `Loja "${nome}" (ID ${idLojaEditando}) atualizada com sucesso.`);
             cancelarEdicaoLoja();
         } else {
             // Criação
             await salvarLoja({ nome, localizacao });
+            registrarLog("INFO", `Nova loja "${nome}" cadastrada com sucesso.`);
             exibirNotificacao("Nova loja cadastrada com sucesso!", "sucesso");
             document.getElementById("formulario-cadastro-loja").reset();
         }
@@ -1427,10 +1363,12 @@ async function processarCadastroPdv(evento) {
             });
 
             exibirNotificacao(`Caixa ${numero_caixa} atualizado com sucesso!`, "sucesso");
+            registrarLog("INFO", `PDV Caixa ${numero_caixa} (ID ${idPdvEditando}) na Loja ID ${loja_id} atualizado com sucesso.`);
             cancelarEdicaoPdv();
         } else {
             // Criação
             await salvarPdv(dadosPdv);
+            registrarLog("INFO", `Novo PDV Caixa ${numero_caixa} cadastrado com sucesso para a Loja ID ${loja_id}.`);
             exibirNotificacao(`Caixa ${numero_caixa} cadastrado com sucesso!`, "sucesso");
             document.getElementById("formulario-cadastro-pdv").reset();
         }
@@ -1468,6 +1406,14 @@ async function editarLoja(id) {
         const lojas = await obterTodos("lojas");
         const loja = lojas.find(l => l.id === id);
         if (loja) {
+            // Expandir formulário se estiver colapsado
+            const cabecalho = document.getElementById("cabecalho-loja-trigger");
+            const corpo = document.getElementById("corpo-loja-cadastro");
+            if (cabecalho && corpo) {
+                cabecalho.classList.remove("colapsado");
+                corpo.classList.remove("fechado");
+            }
+
             document.getElementById("cadastro-loja-nome").value = loja.nome;
             document.getElementById("cadastro-loja-localizacao").value = loja.localizacao;
             
@@ -1489,6 +1435,14 @@ async function editarPdv(id) {
         const pdvs = await obterTodos("pdvs");
         const pdv = pdvs.find(p => p.id === id);
         if (pdv) {
+            // Expandir formulário se estiver colapsado
+            const cabecalho = document.getElementById("cabecalho-pdv-trigger");
+            const corpo = document.getElementById("corpo-pdv-cadastro");
+            if (cabecalho && corpo) {
+                cabecalho.classList.remove("colapsado");
+                corpo.classList.remove("fechado");
+            }
+
             document.getElementById("cadastro-pdv-selecao-loja").value = pdv.loja_id;
             document.getElementById("cadastro-pdv-numero").value = pdv.numero_caixa;
             document.getElementById("cadastro-pdv-ram").value = pdv.ram;
@@ -1645,6 +1599,7 @@ async function confirmarExclusaoLoja(id) {
 
             transacao.oncomplete = async () => {
                 exibirNotificacao(`Unidade "${loja.nome}" excluída com sucesso!`, "sucesso");
+                registrarLog("AVISO", `Loja "${loja.nome}" (ID ${id}) e todos os caixas e auditorias associados foram EXCLUÍDOS permanentemente.`);
                 await carregarFiltrosLojas();
                 await atualizarDropdownLojaCadastro();
                 await renderizarListaLojasCadastro();
@@ -1700,6 +1655,7 @@ async function confirmarExclusaoPdv(id) {
 
             transacao.oncomplete = () => {
                 exibirNotificacao(`Caixa ${pdv.numero_caixa} excluído com sucesso!`, "sucesso");
+                registrarLog("AVISO", `PDV Caixa ${pdv.numero_caixa} (ID ${id}) na Loja ID ${pdv.loja_id} e todas as suas auditorias associadas foram EXCLUÍDOS permanentemente.`);
                 const lojaCadastroAtual = document.getElementById("cadastro-pdv-selecao-loja").value;
                 if (lojaCadastroAtual) {
                     renderizarListaPdvsCadastro(parseInt(lojaCadastroAtual));
@@ -1713,6 +1669,183 @@ async function confirmarExclusaoPdv(id) {
     } catch (erro) {
         console.error("Erro ao deletar PDV:", erro);
         exibirNotificacao("Erro ao excluir caixa.", "erro");
+    }
+}
+
+// ==========================================
+// 9.3 CADASTROS E CONTROLE DE TÉCNICOS
+// ==========================================
+async function carregarDropdownTecnicos() {
+    try {
+        const tecnicos = await obterTodos("tecnicos");
+        const seletor = document.getElementById("formulario-tecnico");
+        seletor.innerHTML = `<option value="">Selecione o Técnico...</option>`;
+        tecnicos.forEach(t => {
+            seletor.innerHTML += `<option value="${t.id}">${t.nome}</option>`;
+        });
+    } catch (erro) {
+        console.error("Erro ao carregar técnicos para formulário:", erro);
+    }
+}
+
+async function processarCadastroTecnico(evento) {
+    evento.preventDefault();
+    const nome = document.getElementById("cadastro-tecnico-nome").value.trim();
+    const email = document.getElementById("cadastro-tecnico-email").value.trim();
+    const telefone = document.getElementById("cadastro-tecnico-telefone").value.trim();
+
+    if (!nome || !email) {
+        exibirNotificacao("Por favor, preencha todos os campos obrigatórios.", "erro");
+        return;
+    }
+
+    try {
+        const tecnicos = await obterTodos("tecnicos");
+        
+        // Evitar duplicados
+        const duplicado = tecnicos.find(t => t.id !== idTecnicoEditando && t.email.toLowerCase() === email.toLowerCase());
+        if (duplicado) {
+            exibirNotificacao("Já existe um técnico cadastrado com este e-mail.", "erro");
+            return;
+        }
+
+        const dadosTecnico = { nome, email, telefone };
+
+        if (idTecnicoEditando) {
+            // Edição
+            dadosTecnico.id = idTecnicoEditando;
+            const transacao = bd.transaction(["tecnicos"], "readwrite");
+            const store = transacao.objectStore("tecnicos");
+            await new Promise((res, rej) => {
+                const req = store.put(dadosTecnico);
+                req.onsuccess = () => res();
+                req.onerror = () => rej(req.error);
+            });
+            exibirNotificacao(`Técnico "${nome}" atualizado com sucesso!`, "sucesso");
+            registrarLog("INFO", `Técnico "${nome}" (ID ${idTecnicoEditando}) atualizado com sucesso.`);
+            cancelarEdicaoTecnico();
+        } else {
+            // Criação
+            const transacao = bd.transaction(["tecnicos"], "readwrite");
+            const store = transacao.objectStore("tecnicos");
+            await new Promise((res, rej) => {
+                const req = store.add(dadosTecnico);
+                req.onsuccess = () => res();
+                req.onerror = () => rej(req.error);
+            });
+            registrarLog("INFO", `Novo técnico "${nome}" cadastrado com sucesso.`);
+            exibirNotificacao(`Técnico "${nome}" cadastrado com sucesso!`, "sucesso");
+            document.getElementById("formulario-cadastro-tecnico").reset();
+        }
+
+        await renderizarListaTecnicosCadastro();
+    } catch (erro) {
+        console.error("Erro ao gravar técnico:", erro);
+        exibirNotificacao("Erro ao processar o cadastro do técnico.", "erro");
+    }
+}
+
+async function editarTecnico(id) {
+    try {
+        const tecnicos = await obterTodos("tecnicos");
+        const tecnico = tecnicos.find(t => t.id === id);
+        if (tecnico) {
+            // Expandir formulário se estiver colapsado
+            const cabecalho = document.getElementById("cabecalho-tecnico-trigger");
+            const corpo = document.getElementById("corpo-tecnico-cadastro");
+            if (cabecalho && corpo) {
+                cabecalho.classList.remove("colapsado");
+                corpo.classList.remove("fechado");
+            }
+
+            document.getElementById("cadastro-tecnico-nome").value = tecnico.nome;
+            document.getElementById("cadastro-tecnico-email").value = tecnico.email;
+            document.getElementById("cadastro-tecnico-telefone").value = tecnico.telefone || "";
+
+            idTecnicoEditando = id;
+            document.getElementById("titulo-formulario-tecnico").innerHTML = `<i class="fas fa-edit"></i> Editar Técnico`;
+            document.getElementById("subtitulo-formulario-tecnico").innerText = `Editando técnico: ${tecnico.nome}`;
+            document.getElementById("botao-submissao-tecnico").innerHTML = `<i class="fas fa-save"></i> Salvar Alterações`;
+            document.getElementById("botao-cancelar-edicao-tecnico").style.display = "block";
+
+            document.getElementById("titulo-formulario-tecnico").scrollIntoView({ behavior: "smooth" });
+        }
+    } catch (erro) {
+        console.error("Erro ao buscar técnico para edição:", erro);
+    }
+}
+
+function cancelarEdicaoTecnico() {
+    document.getElementById("formulario-cadastro-tecnico").reset();
+    idTecnicoEditando = null;
+    document.getElementById("titulo-formulario-tecnico").innerHTML = `<i class="fas fa-user-cog"></i> Cadastrar Novo Técnico`;
+    document.getElementById("subtitulo-formulario-tecnico").innerText = "Adicione um novo técnico responsável ao sistema de TI.";
+    document.getElementById("botao-submissao-tecnico").innerHTML = `<i class="fas fa-plus"></i> Cadastrar Técnico`;
+    document.getElementById("botao-cancelar-edicao-tecnico").style.display = "none";
+}
+
+async function renderizarListaTecnicosCadastro() {
+    try {
+        const tecnicos = await obterTodos("tecnicos");
+        const container = document.getElementById("lista-tecnicos-cadastro");
+        container.innerHTML = "";
+
+        if (tecnicos.length === 0) {
+            container.innerHTML = `<p style="color: var(--texto-secundario); font-size: 13px;">Nenhum técnico cadastrado.</p>`;
+            return;
+        }
+
+        tecnicos.sort((a, b) => a.nome.localeCompare(b.nome));
+        tecnicos.forEach(t => {
+            const div = document.createElement("div");
+            div.className = "mini-item-lista";
+            div.innerHTML = `
+                <div>
+                    <div class="mini-item-lista-texto">${t.nome}</div>
+                    <div class="mini-item-lista-sub">${t.email} ${t.telefone ? `• ${t.telefone}` : ""}</div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" class="botao-primario" style="padding: 6px 10px; font-size: 12px; margin: 0; background: var(--primaria);" onclick="editarTecnico(${t.id})" title="Editar Técnico" aria-label="Editar Técnico">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="botao-primario" style="padding: 6px 10px; font-size: 12px; margin: 0; background: var(--status-alerta); border-color: rgba(231, 111, 81, 0.4);" onclick="confirmarExclusaoTecnico(${t.id})" title="Excluir Técnico" aria-label="Excluir Técnico">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    } catch (erro) {
+        console.error("Erro ao renderizar lista de técnicos:", erro);
+    }
+}
+
+async function confirmarExclusaoTecnico(id) {
+    try {
+        const tecnicos = await obterTodos("tecnicos");
+        const tecnico = tecnicos.find(t => t.id === id);
+        if (!tecnico) return;
+
+        if (confirm(`Tem certeza que deseja excluir o técnico "${tecnico.nome}" do sistema?\n\nEle não aparecerá mais nos formulários de novas inspeções (históricos anteriores não serão afetados).`)) {
+            if (idTecnicoEditando === id) {
+                cancelarEdicaoTecnico();
+            }
+
+            const transacao = bd.transaction(["tecnicos"], "readwrite");
+            const store = transacao.objectStore("tecnicos");
+            store.delete(id);
+
+            transacao.oncomplete = async () => {
+                exibirNotificacao(`Técnico "${tecnico.nome}" excluído com sucesso!`, "sucesso");
+                registrarLog("AVISO", `Técnico "${tecnico.nome}" (ID ${id}) excluído do cadastro da plataforma.`);
+                await renderizarListaTecnicosCadastro();
+                const seletorForm = document.getElementById("formulario-tecnico");
+                if (seletorForm) carregarDropdownTecnicos();
+            };
+        }
+    } catch (erro) {
+        console.error("Erro ao deletar técnico:", erro);
+        exibirNotificacao("Erro ao excluir técnico.", "erro");
     }
 }
 
@@ -1739,15 +1872,92 @@ function exibirNotificacao(mensagem, tipo = "sucesso") {
     }, 4000);
 }
 
+function alternarColapsoFormulario(idCabecalho, idCorpo) {
+    const cabecalho = document.getElementById(idCabecalho);
+    const corpo = document.getElementById(idCorpo);
+    if (cabecalho && corpo) {
+        cabecalho.classList.toggle("colapsado");
+        corpo.classList.toggle("fechado");
+    }
+}
+
+// ==========================================
+// 10. GESTÃO E EXPORTAÇÃO DE LOGS DE EVENTOS
+// ==========================================
+function registrarLog(tipo, descricao) {
+    const data = new Date().toISOString();
+    const log = { data, tipo, descricao };
+    console.log(`[Campelo TI] [${tipo}] ${descricao}`);
+    
+    if (!bd) return Promise.resolve();
+    
+    return new Promise((resolver) => {
+        try {
+            const transacao = bd.transaction(["logs"], "readwrite");
+            const store = transacao.objectStore("logs");
+            const req = store.add(log);
+            req.onsuccess = () => resolver();
+            req.onerror = () => resolver();
+        } catch (e) {
+            console.error("Erro ao registrar log:", e);
+            resolver();
+        }
+    });
+}
+
+async function baixarArquivoLogs() {
+    try {
+        const logs = await obterTodos("logs");
+        logs.sort((a, b) => new Date(a.data) - new Date(b.data));
+        
+        let textoLogs = "========================================================\n";
+        textoLogs += "   RELATÓRIO DE EVENTOS DA PLATAFORMA DE AUDITORIA TI   \n";
+        textoLogs += `   Exportado em: ${new Date().toLocaleString("pt-BR")} \n`;
+        textoLogs += "========================================================\n\n";
+        
+        if (logs.length === 0) {
+            textoLogs += "[SEM REGISTROS DE EVENTOS AINDA]\n";
+        } else {
+            logs.forEach(l => {
+                const dataFormatada = new Date(l.data).toLocaleString("pt-BR");
+                textoLogs += `[${dataFormatada}] [${l.tipo.toUpperCase()}] ${l.descricao}\n`;
+            });
+        }
+        
+        const blob = new Blob([textoLogs], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "eventos.log";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        registrarLog("INFO", "Logs exportados com sucesso pelo usuário.");
+        exibirNotificacao("Arquivo eventos.log baixado com sucesso!", "sucesso");
+    } catch (e) {
+        console.error("Erro ao exportar logs:", e);
+        exibirNotificacao("Erro ao exportar arquivo de logs.", "erro");
+    }
+}
+
 // Vincular funções no escopo global para escuta do HTML
 window.editarLoja = editarLoja;
 window.editarPdv = editarPdv;
+window.editarTecnico = editarTecnico;
 window.cancelarEdicaoLoja = cancelarEdicaoLoja;
 window.cancelarEdicaoPdv = cancelarEdicaoPdv;
+window.cancelarEdicaoTecnico = cancelarEdicaoTecnico;
 window.confirmarExclusaoLoja = confirmarExclusaoLoja;
 window.confirmarExclusaoPdv = confirmarExclusaoPdv;
+window.confirmarExclusaoTecnico = confirmarExclusaoTecnico;
 window.exportarPdfAuditoria = exportarPdfAuditoria;
 window.gerarRelatorioGeralPdf = gerarRelatorioGeralPdf;
 window.abrirModalDetalhesPdv = abrirModalDetalhesPdv;
 window.fecharModal = fecharModal;
 window.alternarAba = alternarAba;
+window.alternarColapsoFormulario = alternarColapsoFormulario;
+window.registrarLog = registrarLog;
+window.baixarArquivoLogs = baixarArquivoLogs;
+

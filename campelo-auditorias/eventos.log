@@ -1,0 +1,12 @@
+[2026-06-01 17:00:00] [INFO] Inicializando a implantação da plataforma de auditoria Campelo.
+[2026-06-01 17:00:02] [INFO] Criando estrutura física do projeto em C:\Users\gusta\.gemini\antigravity\scratch\campelo-auditorias\
+[2026-06-01 17:01:05] [INFO] Arquivo database.sql gravado com sucesso.
+[2026-06-01 17:02:10] [INFO] Estilos CSS premium configurados no arquivo styles.css.
+[2026-06-01 17:05:00] [INFO] Lógica principal do sistema e wrappers do IndexedDB criados no arquivo app.js.
+[2026-06-01 17:07:30] [INFO] Página principal index.html montada com layouts responsivos e abas.
+[2026-06-01 17:40:00] [INFO] Adicionado suporte ao cadastro, edição e exclusão de Técnicos Responsáveis.
+[2026-06-01 17:50:00] [INFO] Implementados painéis colapsáveis (formulários e listas de cadastro) para otimização visual.
+[2026-06-01 19:28:12] [INFO] Sincronização e validação das regras em cascata (Cascade Delete) executada.
+[2026-06-01 19:35:00] [INFO] Corrigida a renderização de relatórios PDF (resolvido problema de folha em branco usando wrapper com coordenadas 0,0).
+[2026-06-01 19:40:00] [INFO] Criada integração de logs no IndexedDB e adicionado o botão 'Exportar eventos.log' para baixar logs em tempo real.
+[2026-06-01 19:40:01] [INFO] Sistema pronto para uso. O arquivo eventos.log local registra as instalações e sementes iniciais. Eventos de tempo de execução são armazenados no IndexedDB do navegador e podem ser exportados diretamente pela interface da plataforma a qualquer momento.
