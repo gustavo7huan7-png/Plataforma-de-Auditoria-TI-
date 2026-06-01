@@ -1015,13 +1015,13 @@ async function abrirModalDetalhesPdv(idPdv) {
                         <strong>Técnico: ${a.tecnico}</strong>
                         <span>${stringData}</span>
                     </div>
-                    <table class="pdf-tabela" style="color: #fff; width: 100%; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 12px;">
+                    <table class="pdf-tabela" style="width: 100%; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 12px;">
                         <thead>
                             <tr style="background: rgba(0, 0, 0, 0.4);">
-                                <th style="color: #fff; font-size: 11px; padding: 6px;">Impressora</th>
-                                <th style="color: #fff; font-size: 11px; padding: 6px;">Leitor</th>
-                                <th style="color: #fff; font-size: 11px; padding: 6px;">Teclado/Mouse</th>
-                                <th style="color: #fff; font-size: 11px; padding: 6px;">Gabinete</th>
+                                <th style="color: var(--texto-principal); font-size: 11px; padding: 6px;">Impressora</th>
+                                <th style="color: var(--texto-principal); font-size: 11px; padding: 6px;">Leitor</th>
+                                <th style="color: var(--texto-principal); font-size: 11px; padding: 6px;">Teclado/Mouse</th>
+                                <th style="color: var(--texto-principal); font-size: 11px; padding: 6px;">Gabinete</th>
                             </tr>
                         </thead>
                         <tbody>

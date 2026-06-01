@@ -1044,6 +1044,14 @@ body {
     font-weight: 700;
 }
 
+.text-ok {
+    color: var(--status-ok);
+}
+
+.text-warn {
+    color: var(--status-alerta);
+}
+
 .pdf-secao-imagens {
     margin-top: 24px;
 }
@@ -1330,6 +1338,39 @@ body {
         width: 100%;
         justify-content: center;
         padding: 12px;
+    }
+
+    /* Tornar os painéis de cadastro mais confortáveis no mobile */
+    .painel-formulario {
+        padding: 24px 18px;
+        max-width: 100%;
+    }
+
+    .painel-formulario form {
+        width: 100%;
+    }
+
+    .painel-formulario .grade-formulario {
+        gap: 14px;
+    }
+
+    .painel-formulario .grupo-formulario {
+        min-width: 0;
+    }
+
+    .painel-formulario .grupo-formulario input,
+    .painel-formulario .grupo-formulario select,
+    .painel-formulario .grupo-formulario textarea {
+        width: 100%;
+    }
+
+    .painel-formulario [style*="display: flex; gap: 8px;"] {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .painel-formulario [style*="display: flex; gap: 8px;"] button {
+        width: 100%;
     }
 }
 
