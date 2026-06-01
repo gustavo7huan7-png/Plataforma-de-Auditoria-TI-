@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Plataforma de Gerenciamento de Auditorias de TI para os PDVs dos Supermercados Campelo. Controle preventivo e corretivo de caixas e periféricos.">
+    <title>Campelo - Auditoria de TI nos PDVs</title>
+    
+    <!-- CSS Estilos Customizados -->
+    <link rel="stylesheet" href="./styles.css">
+    
+    <!-- Font Awesome Icons (CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js (CDN para Painéis e Gráficos) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2pdf.js (CDN para Geração de Relatórios em PDF no Cliente) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+    <div class="conteiner-aplicacao">
+        
+        <!-- Cabeçalho Institucional -->
+        <header class="cabecalho-aplicacao" id="cabecalho-principal">
+            <div class="conteiner-marca">
+                <img src="./logo.png" class="logo-marca" alt="Logo Campelo Supermercados">
+                <div class="divisor-marca"></div>
+                <div class="titulo-marca">
+                    <h1>Auditoria de TI</h1>
+                    <p>Gestão Preventiva de PDVs</p>
+                </div>
+            </div>
+            
+            <!-- Navegação Principal -->
+            <nav class="abas-navegacao" id="barra-navegacao">
+                <button class="botao-aba ativo" data-target="aba-painel" id="botao-aba-painel">
+                    <i class="fas fa-chart-pie"></i> Dashboard
+                </button>
+                <button class="botao-aba" data-target="aba-nova-auditoria" id="botao-aba-nova-auditoria">
+                    <i class="fas fa-clipboard-check"></i> Nova Inspeção
+                </button>
+                <button class="botao-aba" data-target="aba-todos-pdvs" id="botao-aba-todos-pdvs">
+                    <i class="fas fa-desktop"></i> Todos os Caixas
+                </button>
+                <button class="botao-aba" data-target="aba-cadastros" id="botao-aba-cadastros">
+                    <i class="fas fa-plus-circle"></i> Cadastros
+                </button>
+            </nav>
+        </header>
+        
+        <!-- SEÇÃO: DASHBOARD DO GERENTE -->
+        <section id="aba-painel" class="secao-aplicacao ativa">
+            
+            <!-- Barra de Filtros e Busca -->
+            <div class="barra-filtros">
+                <div class="grupo-filtro">
+                    <label for="filtro-loja-painel" class="rotulo-filtro">Selecione a Unidade:</label>
+                    <select id="filtro-loja-painel" class="seletor-personalizado" aria-label="Filtro de Unidade de Loja">
+                        <option value="todas">Todas as Unidades</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="botao-primario" onclick="alternarAba('aba-nova-auditoria')" id="botao-atalho-nova-auditoria">
+                        <i class="fas fa-plus"></i> Nova Auditoria
+                    </button>
+                    <button class="botao-primario" style="background: var(--primaria-clara);" onclick="gerarRelatorioGeralPdf()" id="botao-relatorio-geral">
+                        <i class="fas fa-file-pdf"></i> Gerar Relatório Geral
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cartões de Métricas Estatísticas -->
+            <div class="linha-metricas">
+                <div class="card-metrica" id="card-metrica-total">
+                    <div class="icone-metrica ok">
+                        <i class="fas fa-desktop"></i>
+                    </div>
+                    <div class="detalhes-metrica">
+                        <h3>PDVs Ativos</h3>
+                        <div class="valor-metrica" id="metrica-total-pdvs">0</div>
+                        <div class="subtitulo-metrica">Caixas cadastrados no grupo</div>
+                    </div>
+                </div>
+
+                <div class="card-metrica" id="card-metrica-ram">
+                    <div class="icone-metrica">
+                        <i class="fas fa-microchip"></i>
+                    </div>
+                    <div class="detalhes-metrica">
+                        <h3>Upgrade de RAM</h3>
+                        <div class="valor-metrica" id="metrica-upgrade-ram">0%</div>
+                        <div class="subtitulo-metrica" id="metrica-upgrade-sub">0 de 0 PDVs (&lt; 8GB)</div>
+                    </div>
+                </div>
+
+                <div class="card-metrica" id="card-metrica-defeitos">
+                    <div class="icone-metrica">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <div class="detalhes-metrica">
+                        <h3>Caixas com Alerta</h3>
+                        <div class="valor-metrica" id="metrica-defeitos-ativos">0</div>
+                        <div class="subtitulo-metrica">Requerem manutenção ou troca</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Painéis Gráficos de Visualização de Dados -->
+            <div class="grade-painel" style="margin-top: 24px;">
+                <div class="painel-grade" id="painel-grafico-bios">
+                    <div class="cabecalho-painel">
+                        <h2><i class="fas fa-adjust"></i> Status de BIOS (UEFI vs Legacy)</h2>
+                    </div>
+                    <div class="conteiner-grafico">
+                        <canvas id="grafico-bios" aria-label="Gráfico de status de BIOS"></canvas>
+                    </div>
+                </div>
+
+                <div class="painel-grade" id="painel-grafico-perifericos">
+                    <div class="cabecalho-painel">
+                        <h2><i class="fas fa-fire-alt"></i> Ocorrências de Ocorrência por Periférico</h2>
+                    </div>
+                    <div class="conteiner-grafico">
+                        <canvas id="grafico-perifericos" aria-label="Gráfico de defeitos de periféricos"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Listagem de Caixas (Componentes de Cards) -->
+            <div class="cabecalho-grade-pdvs" style="margin-top: 32px;">
+                <h2>Cards de Monitoramento de Caixas</h2>
+            </div>
+            <div class="grade-pdvs" id="conteiner-cards-pdvs">
+                <!-- Inserido dinamicamente via JS -->
+            </div>
+        </section>
+        
+        <!-- SEÇÃO: FORMULÁRIO DE ENTRADA (NOVA AUDITORIA) -->
+        <section id="aba-nova-auditoria" class="secao-aplicacao">
+            <div class="painel-formulario">
+                <div style="text-align: center; margin-bottom: 28px;">
+                    <h2 style="font-size: 22px; font-weight: 700; color: var(--destaque);">Formulário de Auditoria Preventiva</h2>
+                    <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;">Insira o status operacional do hardware e periféricos do checkout.</p>
+                </div>
+                
+                <form id="formulario-auditoria">
+                    
+                    <!-- Grid Seleção Principal -->
+                    <div class="grade-formulario">
+                        <div class="grupo-formulario">
+                            <label for="formulario-selecao-loja" class="rotulo-formulario">Unidade / Loja *</label>
+                            <select id="formulario-selecao-loja" class="seletor-personalizado" required aria-label="Seleção da Loja">
+                                <option value="">Carregando Lojas...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="grupo-formulario">
+                            <label for="formulario-selecao-pdv" class="rotulo-formulario">Número do Caixa *</label>
+                            <select id="formulario-selecao-pdv" class="seletor-personalizado" required disabled aria-label="Seleção do Número do Caixa">
+                                <option value="">Selecione a Loja Primeiro...</option>
+                            </select>
+                        </div>
+
+                        <div class="grupo-formulario largura-total">
+                            <label for="formulario-tecnico" class="rotulo-formulario">Técnico Responsável *</label>
+                            <input type="text" id="formulario-tecnico" class="entrada-formulario" placeholder="Digite seu nome completo" required>
+                        </div>
+                    </div>
+
+                    <!-- Especificações Técnicas -->
+                    <div style="margin: 28px 0 16px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                        <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--destaque);">Especificações Técnicas de Hardware</h3>
+                    </div>
+                    
+                    <div class="grade-formulario">
+                        <div class="grupo-formulario">
+                            <label for="espec-so" class="rotulo-formulario">Sistema Operacional</label>
+                            <input type="text" id="espec-so" class="entrada-formulario" placeholder="Ex: Windows 10 IoT Enterprise" required>
+                        </div>
+
+                        <div class="grupo-formulario">
+                            <label for="espec-versao" class="rotulo-formulario">Versão do Sistema</label>
+                            <input type="text" id="espec-versao" class="entrada-formulario" placeholder="Ex: 21H2 ou Build" required>
+                        </div>
+
+                        <div class="grupo-formulario">
+                            <label for="espec-ram" class="rotulo-formulario">Memória RAM Instalada (GB)</label>
+                            <input type="number" id="espec-ram" class="entrada-formulario" placeholder="Ex: 4, 8, 16" min="1" required>
+                        </div>
+
+                        <div class="grupo-formulario">
+                            <label for="espec-bios" class="rotulo-formulario">Interface de BIOS</label>
+                            <select id="espec-bios" class="seletor-personalizado" required aria-label="Seleção da Interface de BIOS">
+                                <option value="UEFI">UEFI</option>
+                                <option value="Legacy">Legacy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Status de Periféricos (Quick status selectors) -->
+                    <div style="margin: 28px 0 16px 0; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                        <h3 style="font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--destaque);">Status Operacional de Periféricos</h3>
+                    </div>
+
+                    <div class="conteiner-seletores-status">
+                        <!-- Impressora -->
+                        <div class="card-status" id="card-status-impressora">
+                            <span class="titulo-card-status">Impressora Térmica</span>
+                            <div class="grupo-botoes-status">
+                                <button type="button" class="botao-status botao-ok ativo" id="botao-impressora-ok">OK</button>
+                                <button type="button" class="botao-status botao-alerta" id="botao-impressora-alerta">Atenção</button>
+                            </div>
+                        </div>
+
+                        <!-- Leitor Código Barras -->
+                        <div class="card-status" id="card-status-leitor">
+                            <span class="titulo-card-status">Leitor de Código</span>
+                            <div class="grupo-botoes-status">
+                                <button type="button" class="botao-status botao-ok ativo" id="botao-leitor-ok">OK</button>
+                                <button type="button" class="botao-status botao-alerta" id="botao-leitor-alerta">Atenção</button>
+                            </div>
+                        </div>
+
+                        <!-- Teclado / Mouse -->
+                        <div class="card-status" id="card-status-teclado">
+                            <span class="titulo-card-status">Teclado / Mouse</span>
+                            <div class="grupo-botoes-status">
+                                <button type="button" class="botao-status botao-ok ativo" id="botao-teclado-ok">OK</button>
+                                <button type="button" class="botao-status botao-alerta" id="botao-teclado-alerta">Atenção</button>
+                            </div>
+                        </div>
+
+                        <!-- Estado Gabinete -->
+                        <div class="card-status" id="card-status-gabinete">
+                            <span class="titulo-card-status">Gabinete / CPU</span>
+                            <div class="grupo-botoes-status">
+                                <button type="button" class="botao-status botao-ok ativo" id="botao-gabinete-ok">OK</button>
+                                <button type="button" class="botao-status botao-alerta" id="botao-gabinete-alerta">Atenção</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload de Imagem e Observações -->
+                    <div class="grupo-formulario largura-total" style="margin-bottom: 20px;">
+                        <label class="rotulo-formulario">Upload de Foto do Gabinete (Exibição 190x190px)</label>
+                        
+                        <!-- Container de Arrastar/Upload -->
+                        <div class="conteiner-upload" id="area-upload">
+                            <i class="fas fa-cloud-upload-alt icone-upload"></i>
+                            <div class="texto-upload">
+                                Arraste ou <span>Clique aqui</span> para carregar a foto do gabinete
+                            </div>
+                            <input type="file" id="upload-arquivo" accept="image/*" style="display: none;">
+                        </div>
+
+                        <!-- Container Fixo de Exibição 190px x 190px -->
+                        <div style="display: flex; justify-content: center; width: 100%;">
+                            <div class="conteiner-previsualizacao-imagem" id="conteiner-previsualizacao">
+                                <img src="" id="imagem-previsualizacao" alt="Pre-visualização de Gabinete">
+                                <button type="button" class="remover-previsualizacao-imagem" id="remover-previsualizacao" title="Remover imagem" aria-label="Remover Imagem">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grupo-formulario largura-total" style="margin-bottom: 32px;">
+                        <label for="formulario-observacoes" class="rotulo-formulario">Observações e Detalhes da Auditoria</label>
+                        <textarea id="formulario-observacoes" class="entrada-formulario" rows="4" placeholder="Descreva os problemas observados ou procedimentos efetuados..." style="resize: vertical; min-height: 80px;"></textarea>
+                    </div>
+
+                    <!-- Envio -->
+                    <div style="display: flex; justify-content: flex-end; gap: 16px;">
+                        <button type="button" class="botao-primario" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);" onclick="alternarAba('aba-painel')" id="botao-cancelar-auditoria">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="botao-destaque" id="botao-salvar-auditoria">
+                            <i class="fas fa-save"></i> Salvar Auditoria
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+        <!-- SEÇÃO: VISUALIZAÇÃO GERAL DE PDVS -->
+        <section id="aba-todos-pdvs" class="secao-aplicacao">
+            <div class="barra-filtros">
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--texto-principal);"><i class="fas fa-list-ul"></i> Todos os PDVs Cadastrados no Sistema</h2>
+            </div>
+            <div class="grade-pdvs" id="conteiner-lista-todos-pdvs">
+                <!-- Renderizado via JS -->
+            </div>
+        </section>
+
+        <!-- SEÇÃO DE CADASTROS (LOJAS E PDVS) -->
+        <section id="aba-cadastros" class="secao-aplicacao">
+            <div class="grade-cadastros">
+                
+                <!-- Painel de Loja (Cadastro/Edição) -->
+                <div class="painel-formulario" style="margin: 0; max-width: 100%;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 18px; font-weight: 700; color: var(--destaque);" id="titulo-formulario-loja"><i class="fas fa-store"></i> Cadastrar Nova Loja</h2>
+                        <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;" id="subtitulo-formulario-loja">Adicione uma nova unidade física do supermercado ao sistema.</p>
+                    </div>
+                    <form id="formulario-cadastro-loja">
+                        <div class="grupo-formulario" style="margin-bottom: 16px;">
+                            <label for="cadastro-loja-nome" class="rotulo-formulario">Nome da Unidade *</label>
+                            <input type="text" id="cadastro-loja-nome" class="entrada-formulario" placeholder="Ex: Campelo Sul" required>
+                        </div>
+                        <div class="grupo-formulario" style="margin-bottom: 24px;">
+                            <label for="cadastro-loja-localizacao" class="rotulo-formulario">Localização/Endereço *</label>
+                            <input type="text" id="cadastro-loja-localizacao" class="entrada-formulario" placeholder="Ex: Av. Santos Dumont, 800 - Araguaína/TO" required>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-loja">
+                                <i class="fas fa-plus"></i> Cadastrar Loja
+                            </button>
+                            <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-loja">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Lista de Lojas Existentes para Edição/Exclusão -->
+                    <div style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+                        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); margin-bottom: 12px; font-weight: 700;">Unidades Cadastradas</h3>
+                        <div id="lista-lojas-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Inserido dinamicamente via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de PDV (Cadastro/Edição) -->
+                <div class="painel-formulario" style="margin: 0; max-width: 100%;">
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <h2 style="font-size: 18px; font-weight: 700; color: var(--destaque);" id="titulo-formulario-pdv"><i class="fas fa-desktop"></i> Cadastrar Novo PDV (Caixa)</h2>
+                        <p style="color: var(--texto-secundario); font-size: 13px; margin-top: 4px;" id="subtitulo-formulario-pdv">Adicione um computador de checkout a uma unidade existente.</p>
+                    </div>
+                    <form id="formulario-cadastro-pdv">
+                        <div class="grupo-formulario" style="margin-bottom: 12px;">
+                            <label for="cadastro-pdv-selecao-loja" class="rotulo-formulario">Selecione a Loja *</label>
+                            <select id="cadastro-pdv-selecao-loja" class="seletor-personalizado" required aria-label="Seleção da Loja para Cadastro de PDV">
+                                <option value="">Carregando lojas...</option>
+                            </select>
+                        </div>
+                        <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="grupo-formulario">
+                                <label for="cadastro-pdv-numero" class="rotulo-formulario">Número do Caixa *</label>
+                                <input type="number" id="cadastro-pdv-numero" class="entrada-formulario" placeholder="Ex: 5" min="1" required>
+                            </div>
+                            <div class="grupo-formulario">
+                                <label for="cadastro-pdv-ram" class="rotulo-formulario">Memória RAM (GB) *</label>
+                                <input type="number" id="cadastro-pdv-ram" class="entrada-formulario" placeholder="Ex: 8" min="1" required>
+                            </div>
+                        </div>
+                        <div class="grade-formulario" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                            <div class="grupo-formulario">
+                                <label for="cadastro-pdv-so" class="rotulo-formulario">Sistema Operacional *</label>
+                                <input type="text" id="cadastro-pdv-so" class="entrada-formulario" placeholder="Ex: Windows 10 IoT" required>
+                            </div>
+                            <div class="grupo-formulario">
+                                <label for="cadastro-pdv-versao" class="rotulo-formulario">Versão do S.O. *</label>
+                                <input type="text" id="cadastro-pdv-versao" class="entrada-formulario" placeholder="Ex: 21H2" required>
+                            </div>
+                        </div>
+                        <div class="grupo-formulario" style="margin-bottom: 24px;">
+                            <label for="cadastro-pdv-bios" class="rotulo-formulario">Interface de BIOS *</label>
+                            <select id="cadastro-pdv-bios" class="seletor-personalizado" required aria-label="Seleção da Interface de BIOS para Cadastro de PDV">
+                                <option value="UEFI">UEFI</option>
+                                <option value="Legacy">Legacy</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="submit" class="botao-destaque" style="flex: 2; justify-content: center;" id="botao-submissao-pdv">
+                                <i class="fas fa-plus"></i> Cadastrar PDV
+                            </button>
+                            <button type="button" class="botao-primario" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: none; justify-content: center;" id="botao-cancelar-edicao-pdv">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Lista de PDVs Existentes para Edição/Exclusão -->
+                    <div style="margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+                        <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); margin-bottom: 12px; font-weight: 700;">Caixas Cadastrados</h3>
+                        <div id="lista-pdvs-cadastro" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                            <p style="color: var(--texto-secundario); font-size: 13px;">Selecione uma loja acima para listar os caixas.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+        
+    </div>
+
+    <!-- MODAL DE HISTÓRICO DE AUDITORIAS DE UM PDV -->
+    <div class="sobreposicao-modal" id="sobreposicao-modal">
+        <div class="conteudo-modal" id="painel-conteudo-modal">
+            <div class="cabecalho-modal">
+                <div>
+                    <h2 id="modal-pdv-titulo" style="font-size: 20px; font-weight: 700; color: var(--destaque);">Caixa 00</h2>
+                    <p id="modal-loja-nome" style="font-size: 13px; color: var(--texto-secundario); font-weight: 500;"></p>
+                </div>
+                <button class="botao-fechar-modal" id="modal-fechar" aria-label="Fechar Modal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="corpo-modal">
+                <!-- Detalhes do Hardware Atual -->
+                <div style="background: rgba(0, 0, 0, 0.2); padding: 16px; border: 1px solid var(--cor-borda); border-radius: var(--raio-medio); margin-bottom: 24px;">
+                    <h3 style="font-size: 14px; text-transform: uppercase; color: var(--destaque); margin-bottom: 12px; font-weight: 700;">Especificações Físicas Atuais</h3>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+                        <div>
+                            <p style="font-size: 11px; color: var(--texto-secundario);">S.O.</p>
+                            <p id="modal-espec-so" style="font-size: 13px; font-weight: 600;"></p>
+                        </div>
+                        <div>
+                            <p style="font-size: 11px; color: var(--texto-secundario);">Versão</p>
+                            <p id="modal-espec-versao" style="font-size: 13px; font-weight: 600;"></p>
+                        </div>
+                        <div>
+                            <p style="font-size: 11px; color: var(--texto-secundario);">RAM</p>
+                            <p id="modal-espec-ram" style="font-size: 13px; font-weight: 600;"></p>
+                        </div>
+                        <div>
+                            <p style="font-size: 11px; color: var(--texto-secundario);">BIOS</p>
+                            <p id="modal-espec-bios" style="font-size: 13px; font-weight: 600;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Histórico de Inspeções -->
+                <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 8px;">
+                    <i class="fas fa-history" style="color: var(--destaque);"></i> Histórico de Auditorias
+                </h3>
+                
+                <div id="modal-historico-auditoria">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+            
+            <div class="rodape-modal">
+                <button class="botao-primario" style="background: rgba(255, 255, 255, 0.05);" onclick="fecharModal()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS CONTAINER -->
+    <div class="conteiner-notificacoes" id="conteiner-notificacoes"></div>
+
+    <!-- ========================================================
+         TEMPLATE DE PDF INSTITUCIONAL (Invisível no Fluxo da Página)
+         Cabeçalho -> Metadados -> Hardware -> Imagens 190x190px
+         ======================================================== -->
+    <div id="template-pdf">
+        <!-- Cabeçalho Institucional -->
+        <div class="pdf-cabecalho">
+            <img src="./logo.png" class="pdf-logo" alt="Logo Campelo">
+            <div class="pdf-bloco-titulo">
+                <h1>RELATÓRIO DE AUDITORIA DE TI</h1>
+                <p>Campelo Supermercados • Inspeção Preventiva</p>
+            </div>
+        </div>
+
+        <!-- Metadados da Auditoria -->
+        <div class="pdf-titulo-secao">Dados Gerais da Inspeção</div>
+        <div class="pdf-grade-meta">
+            <div class="pdf-item-meta">
+                <span class="pdf-rotulo-meta">Unidade / Loja</span>
+                <span class="pdf-valor-meta" id="pdf-nome-loja">-</span>
+            </div>
+            <div class="pdf-item-meta">
+                <span class="pdf-rotulo-meta">Localização</span>
+                <span class="pdf-valor-meta" id="pdf-localizacao-loja" style="font-size: 11px;">-</span>
+            </div>
+            <div class="pdf-item-meta">
+                <span class="pdf-rotulo-meta">Ponto de Venda</span>
+                <span class="pdf-valor-meta" id="pdf-meta-caixa">-</span>
+            </div>
+            <div class="pdf-item-meta">
+                <span class="pdf-rotulo-meta">Data e Hora</span>
+                <span class="pdf-valor-meta" id="pdf-meta-data">-</span>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <span class="pdf-rotulo-meta">Técnico Responsável</span>
+                <span class="pdf-valor-meta" id="pdf-meta-tecnico">-</span>
+            </div>
+        </div>
+
+        <!-- Especificações de Hardware -->
+        <div class="pdf-titulo-secao">Especificações do Computador (Gabinete)</div>
+        <table class="pdf-tabela">
+            <thead>
+                <tr>
+                    <th>Sistema Operacional</th>
+                    <th>Versão</th>
+                    <th>Memória RAM</th>
+                    <th>Tipo de BIOS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="pdf-computador-so">-</td>
+                    <td id="pdf-computador-versao">-</td>
+                    <td id="pdf-computador-ram">-</td>
+                    <td id="pdf-computador-bios">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Status de Periféricos -->
+        <div class="pdf-titulo-secao">Inspeção de Periféricos e Integridade</div>
+        <table class="pdf-tabela">
+            <thead>
+                <tr>
+                    <th>Impressora Térmica</th>
+                    <th>Leitor de Código</th>
+                    <th>Teclado & Mouse</th>
+                    <th>Estado do Gabinete</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td id="pdf-status-impressora">-</td>
+                    <td id="pdf-status-leitor">-</td>
+                    <td id="pdf-status-teclado">-</td>
+                    <td id="pdf-status-gabinete">-</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Observações -->
+        <div class="pdf-titulo-secao">Observações de Campo</div>
+        <div style="background: #f9f9f9; padding: 16px; border: 1px solid #eee; border-radius: 6px; font-size: 12px; line-height: 1.6; font-style: italic; min-height: 80px;" id="pdf-observacoes">
+            -
+        </div>
+
+        <!-- Grid de Fotos 190x190px -->
+        <div class="pdf-secao-imagens">
+            <div class="pdf-titulo-secao">Evidências Fotográficas (Gabinete e Checkout)</div>
+            <p style="font-size: 10px; color: #777; margin-bottom: 8px;">Foto redimensionada e ajustada ao tamanho padrão de 190px x 190px:</p>
+            <div class="pdf-conteiner-imagem-190">
+                <img src="" id="pdf-renderizacao-imagem" alt="Evidência Fotográfica 190x190">
+            </div>
+        </div>
+
+        <!-- Rodapé do PDF -->
+        <div class="pdf-nota-rodape">
+            Este relatório foi gerado eletronicamente em conformidade com as regras de segurança e inventário da TI Campelo.<br>
+            © 2026 Campelo Supermercados. Todos os direitos reservados.
+        </div>
+    </div>
+
+    <!-- JS Core Script -->
+    <script src="./app.js"></script>
+</body>
+</html>
